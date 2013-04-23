@@ -23,7 +23,7 @@ import org.springframework.retry.support.RetryTemplate
 
 class RabbitmqRaxGrailsPlugin {
     // the plugin version
-    def version = "1.0.8"
+    def version = "1.0.9"
     // plugin group
     def group = 'com.rackspace.rvi'
     // the version or versions of Grails the plugin is designed for
@@ -54,17 +54,17 @@ class RabbitmqRaxGrailsPlugin {
 
     // URL to the plugin's documentation
     def documentation = "http://grails-plugins.github.com/grails-rabbitmq/"
-    
+
     def loadAfter = ['services']
     def observe = ['*']
 
-    def doWithSpring = { 
+    def doWithSpring = {
 
         def rabbitmqConfig = application.config.rabbitmq
         def configHolder = new RabbitConfigurationHolder(rabbitmqConfig)
 
         def connectionFactoryConfig = rabbitmqConfig?.connectionfactory
-        
+
         def connectionFactoryUsername = connectionFactoryConfig?.username
         def connectionFactoryPassword = connectionFactoryConfig?.password
         def connectionFactoryVirtualHost = connectionFactoryConfig?.virtualHost
@@ -76,9 +76,9 @@ class RabbitmqRaxGrailsPlugin {
         if(!connectionFactoryUsername || !connectionFactoryPassword || !connectionFactoryHostname) {
             log.error 'RabbitMQ connection factory settings (rabbitmq.connectionfactory.username, rabbitmq.connectionfactory.password and rabbitmq.connectionfactory.hostname) must be defined in Config.groovy'
         } else {
-          
+
             log.debug "Connecting to rabbitmq ${connectionFactoryUsername}@${connectionFactoryHostname} with ${configHolder.getDefaultConcurrentConsumers()} consumers."
-          
+
             def connectionFactoryClassName = connectionFactoryConfig?.className ?:
                     'org.springframework.amqp.rabbit.connection.CachingConnectionFactory'
             def parentClassLoader = getClass().classLoader
@@ -121,7 +121,7 @@ class RabbitmqRaxGrailsPlugin {
 
                 serviceConfigurer.configure(delegate)
             }
-            
+
             def queuesConfig = application.config.rabbitmq?.queues
             if(queuesConfig) {
                 def queueBuilder = new RabbitQueueBuilder()
@@ -129,7 +129,7 @@ class RabbitmqRaxGrailsPlugin {
                 queuesConfig.delegate = queueBuilder
                 queuesConfig.resolveStrategy = Closure.DELEGATE_FIRST
                 queuesConfig()
-                
+
                 // Deal with declared exchanges first.
                 queueBuilder.exchanges?.each { exchange ->
                     if (log.debugEnabled) {
@@ -141,7 +141,7 @@ class RabbitmqRaxGrailsPlugin {
                             Boolean.valueOf(exchange.autoDelete),
                             exchange.arguments)
                 }
-                
+
                 // Next, the queues.
                 queueBuilder.queues?.each { queue ->
                     if (log.debugEnabled) {
@@ -155,13 +155,13 @@ class RabbitmqRaxGrailsPlugin {
                             queue.arguments,
                     )
                 }
-                
+
                 // Finally, the bindings between exchanges and queues.
                 queueBuilder.bindings?.each { binding ->
                     if (log.debugEnabled) {
                         log.debug "Registering binding between exchange '${binding.exchange}' & queue '${binding.queue}'"
                     }
-                    
+
                     def args = [ ref("grails.rabbit.exchange.${binding.exchange}"), ref ("grails.rabbit.queue.${binding.queue}") ]
                     if (binding.rule) {
                         log.debug "Binding with rule '${binding.rule}'"
@@ -174,7 +174,7 @@ class RabbitmqRaxGrailsPlugin {
                     "grails.rabbit.binding.${binding.exchange}.${binding.queue}"(Binding, binding.queue, QUEUE, binding.exchange, binding.rule, binding.arguments )
                 }
             }
-			
+
             rabbitRetryHandler(StatefulRetryOperationsInterceptorFactoryBean) {
                 def retryPolicy = new SimpleRetryPolicy()
                 def maxRetryAttempts = 1
@@ -187,23 +187,23 @@ class RabbitmqRaxGrailsPlugin {
                     }
                 }
                 retryPolicy.maxAttempts = maxRetryAttempts
-                
+
                 def backOffPolicy = new FixedBackOffPolicy()
                 backOffPolicy.backOffPeriod = 5000
-                
+
                 def retryTemplate = new RetryTemplate()
                 retryTemplate.retryPolicy  = retryPolicy
                 retryTemplate.backOffPolicy = backOffPolicy
-                
+
                 retryOperations = retryTemplate
             }
-        }   
+        }
     }
-    
+
     def doWithDynamicMethods = { appCtx ->
         addDynamicMessageSendingMethods application.allClasses, appCtx
     }
-    
+
     private addDynamicMessageSendingMethods(classes, ctx) {
         if(ctx.rabbitMQConnectionFactory) {
             classes.each { clz ->
@@ -226,11 +226,11 @@ class RabbitmqRaxGrailsPlugin {
             }
         }
     }
-    
+
     def onChange = { evt ->
         if(evt.source instanceof Class) {
             addDynamicMessageSendingMethods ([evt.source], evt.ctx)
-            
+
             // If a service has changed, reload the associated beans
             if(isServiceEventSource(application, evt.source)) {
                 def serviceGrailsClass = application.addArtefact(ServiceArtefactHandler.TYPE, evt.source)
@@ -244,7 +244,7 @@ class RabbitmqRaxGrailsPlugin {
                     beans.registerBeans(evt.ctx)
                     startServiceListener(serviceGrailsClass.propertyName, evt.ctx)
                 }
-            } 
+            }
 
             // Other listener containers may have been stopped if they were
             // affected by the re-registering of the changed class. For example,
