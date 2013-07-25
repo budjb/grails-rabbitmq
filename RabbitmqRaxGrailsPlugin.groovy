@@ -23,7 +23,7 @@ import org.springframework.retry.support.RetryTemplate
 
 class RabbitmqRaxGrailsPlugin {
     // the plugin version
-    def version = "1.0.10"
+    def version = "1.0.11"
     // plugin group
     def group = 'com.rackspace.rvi'
     // the version or versions of Grails the plugin is designed for
@@ -89,7 +89,7 @@ class RabbitmqRaxGrailsPlugin {
                 username = connectionFactoryUsername
                 password = connectionFactoryPassword
                 channelCacheSize = connectionChannelCacheSize
-                
+
                 if (connectionFactoryPort) {
                     port = connectionFactoryPort
                 }
